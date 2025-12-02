@@ -94,16 +94,8 @@ class PdfService {
           ),
           pw.SizedBox(height: 20),
 
-          // Products Table
-          pw.Text(
-            'Product Details',
-            style: pw.TextStyle(
-              fontSize: 16,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-          pw.SizedBox(height: 10),
-          _buildProductsTable(products, currencyFormat),
+          // Products organized by category
+          ..._buildCategoryProducts(products, currencyFormat),
         ],
       ),
     );
@@ -204,6 +196,76 @@ class PdfService {
         ),
       ],
     );
+  }
+
+  List<pw.Widget> _buildCategoryProducts(
+    List<Product> products,
+    NumberFormat currencyFormat,
+  ) {
+    final widgets = <pw.Widget>[];
+    
+    // Group products by category
+    final Map<String, List<Product>> groupedByCategory = {};
+    for (var product in products) {
+      if (!groupedByCategory.containsKey(product.category)) {
+        groupedByCategory[product.category] = [];
+      }
+      groupedByCategory[product.category]!.add(product);
+    }
+
+    // Sort categories by order in wearCategories
+    final sortedCategories = groupedByCategory.keys.toList()
+      ..sort((a, b) {
+        final indexA = wearCategories.indexWhere((c) => c.name == a);
+        final indexB = wearCategories.indexWhere((c) => c.name == b);
+        return indexA.compareTo(indexB);
+      });
+
+    // Build widgets for each category
+    for (final category in sortedCategories) {
+      final categoryProducts = groupedByCategory[category]!;
+      final categoryTotal = categoryProducts.fold<double>(0, (sum, p) => sum + p.profit);
+
+      widgets.add(
+        pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.SizedBox(height: 12),
+            pw.Container(
+              padding: pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.blue100,
+                borderRadius: pw.BorderRadius.circular(4),
+              ),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    '$category (${categoryProducts.length} items)',
+                    style: pw.TextStyle(
+                      fontSize: 12,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    'Profit: ₹${currencyFormat.format(categoryTotal)}',
+                    style: pw.TextStyle(
+                      fontSize: 11,
+                      color: categoryTotal >= 0 ? PdfColors.green : PdfColors.red,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 8),
+            _buildProductsTable(categoryProducts, currencyFormat),
+          ],
+        ),
+      );
+    }
+
+    return widgets;
   }
 
   pw.Widget _buildTableCell(

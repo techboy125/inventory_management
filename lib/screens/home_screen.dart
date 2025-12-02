@@ -21,6 +21,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late Future<List<Product>> _productsFuture;
   final _currencyFormat = NumberFormat('#,##0.00', 'en_IN');
+  String? _selectedCategory;
 
   @override
   void initState() {
@@ -181,13 +182,79 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          // Calculate totals
-          double totalBuying = products.fold(0, (sum, p) => sum + p.buyingPrice);
-          double totalSelling = products.fold(0, (sum, p) => sum + p.sellingPrice);
-          double totalProfit = products.fold(0, (sum, p) => sum + p.profit);
+          // Filter products by selected category
+          final filteredProducts = _selectedCategory == null
+              ? products
+              : products.where((p) => p.category == _selectedCategory).toList();
+
+          if (filteredProducts.isEmpty && _selectedCategory != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.filter_alt,
+                    size: 80,
+                    color: Colors.grey[300],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No products in $_selectedCategory',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          // Calculate totals for filtered products
+          double totalBuying = filteredProducts.fold(0, (sum, p) => sum + p.buyingPrice);
+          double totalSelling = filteredProducts.fold(0, (sum, p) => sum + p.sellingPrice);
+          double totalProfit = filteredProducts.fold(0, (sum, p) => sum + p.profit);
 
           return Column(
             children: [
+              // Category Filter Tabs
+              SizedBox(
+                height: 50,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  itemCount: wearCategories.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: const Text('All'),
+                          selected: _selectedCategory == null,
+                          onSelected: (selected) {
+                            setState(() {
+                              _selectedCategory = null;
+                            });
+                          },
+                        ),
+                      );
+                    }
+                    final category = wearCategories[index - 1];
+                    final count = products.where((p) => p.category == category.name).length;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text('${category.name} ($count)'),
+                        selected: _selectedCategory == category.name,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedCategory = selected ? category.name : null;
+                          });
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
               // Summary Card
               Container(
                 margin: const EdgeInsets.all(12),
@@ -209,7 +276,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Summary',
+                      _selectedCategory == null
+                          ? 'Overall Summary'
+                          : '$_selectedCategory Summary',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Colors.white,
                           ),
@@ -222,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Products: ${products.length}',
+                              'Products: ${filteredProducts.length}',
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 12,
@@ -281,9 +350,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(8),
-                  itemCount: products.length,
+                  itemCount: filteredProducts.length,
                   itemBuilder: (context, index) {
-                    final product = products[index];
+                    final product = filteredProducts[index];
                     return _buildProductCard(context, product);
                   },
                 ),
@@ -357,6 +426,11 @@ class _HomeScreenState extends State<HomeScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 4),
+            Text(
+              '${product.category} > ${product.subcategory}',
+              style: const TextStyle(fontSize: 11, color: Colors.purple),
+            ),
             const SizedBox(height: 4),
             Text(
               '${product.material} • ${product.size} • ${product.color}',

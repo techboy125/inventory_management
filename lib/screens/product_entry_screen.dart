@@ -29,6 +29,8 @@ class _ProductEntryScreenState extends State<ProductEntryScreen> {
 
   String? _imagePath;
   bool _isLoading = false;
+  late String _selectedCategory;
+  late String _selectedSubcategory;
 
   @override
   void initState() {
@@ -45,6 +47,9 @@ class _ProductEntryScreenState extends State<ProductEntryScreen> {
       text: widget.product?.sellingPrice.toString() ?? '',
     );
     _imagePath = widget.product?.imagePath;
+    _selectedCategory = widget.product?.category ?? wearCategories.first.name;
+    _selectedSubcategory = widget.product?.subcategory ?? 
+        wearCategories.firstWhere((c) => c.name == _selectedCategory).subcategories.first;
   }
 
   @override
@@ -109,6 +114,8 @@ class _ProductEntryScreenState extends State<ProductEntryScreen> {
         id: widget.product?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         imagePath: _imagePath,
         name: _nameController.text.trim(),
+        category: _selectedCategory,
+        subcategory: _selectedSubcategory,
         material: _materialController.text.trim(),
         size: _sizeController.text.trim(),
         color: _colorController.text.trim(),
@@ -190,6 +197,70 @@ class _ProductEntryScreenState extends State<ProductEntryScreen> {
                           ],
                         ),
                 ),
+              ),
+              const SizedBox(height: 24),
+
+              // Category Section
+              Text(
+                'Category',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+
+              // Category Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                decoration: InputDecoration(
+                  labelText: 'Wear Category *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  prefixIcon: const Icon(Icons.category),
+                ),
+                items: wearCategories.map((category) {
+                  return DropdownMenuItem(
+                    value: category.name,
+                    child: Text(category.name),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedCategory = value;
+                      final category = wearCategories.firstWhere((c) => c.name == value);
+                      _selectedSubcategory = category.subcategories.first;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Subcategory Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedSubcategory,
+                decoration: InputDecoration(
+                  labelText: 'Subcategory *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  prefixIcon: const Icon(Icons.subdirectory_arrow_right),
+                ),
+                items: wearCategories
+                    .firstWhere((c) => c.name == _selectedCategory)
+                    .subcategories
+                    .map((subcategory) {
+                  return DropdownMenuItem(
+                    value: subcategory,
+                    child: Text(subcategory),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedSubcategory = value;
+                    });
+                  }
+                },
               ),
               const SizedBox(height: 24),
 
