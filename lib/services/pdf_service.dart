@@ -147,57 +147,6 @@ class PdfService {
     }
   }
 
-  pw.Widget _buildProductsTable(
-    List<Product> products,
-    NumberFormat currencyFormat,
-  ) {
-    return pw.Table(
-      border: pw.TableBorder.all(color: PdfColors.grey300),
-      columnWidths: {
-        0: pw.FlexColumnWidth(1),
-        1: pw.FlexColumnWidth(1.5),
-        2: pw.FlexColumnWidth(1),
-        3: pw.FlexColumnWidth(1),
-        4: pw.FlexColumnWidth(1),
-        5: pw.FlexColumnWidth(1),
-      },
-      children: [
-        // Header Row
-        pw.TableRow(
-          decoration: pw.BoxDecoration(color: PdfColors.grey200),
-          children: [
-            _buildTableCell('Name', isHeader: true),
-            _buildTableCell('Specification', isHeader: true),
-            _buildTableCell('Buying Price', isHeader: true),
-            _buildTableCell('Selling Price', isHeader: true),
-            _buildTableCell('Profit', isHeader: true),
-            _buildTableCell('Margin', isHeader: true),
-          ],
-        ),
-        // Product Rows
-        ...products.map(
-          (product) => pw.TableRow(
-            children: [
-              _buildTableCell(product.name),
-              _buildTableCell(
-                'Mat: ${product.material}\nSize: ${product.size}\nCol: ${product.color}',
-              ),
-              _buildTableCell('₹${currencyFormat.format(product.buyingPrice)}'),
-              _buildTableCell('₹${currencyFormat.format(product.sellingPrice)}'),
-              _buildTableCell(
-                '₹${currencyFormat.format(product.profit)}',
-                color: product.profit >= 0 ? PdfColors.green : PdfColors.red,
-              ),
-              _buildTableCell(
-                '${product.profitMargin.toStringAsFixed(2)}%',
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   List<pw.Widget> _buildCategoryProducts(
     List<Product> products,
     NumberFormat currencyFormat,
@@ -259,7 +208,8 @@ class PdfService {
               ),
             ),
             pw.SizedBox(height: 8),
-            _buildProductsTable(categoryProducts, currencyFormat),
+            // Build product cards with images
+            ..._buildProductCards(categoryProducts, currencyFormat),
           ],
         ),
       );
@@ -268,19 +218,124 @@ class PdfService {
     return widgets;
   }
 
-  pw.Widget _buildTableCell(
-    String text, {
-    bool isHeader = false,
-    PdfColor? color,
-  }) {
-    return pw.Padding(
-      padding: pw.EdgeInsets.all(6),
-      child: pw.Text(
-        text,
-        style: pw.TextStyle(
-          fontSize: isHeader ? 11 : 9,
-          fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
-          color: color,
+  List<pw.Widget> _buildProductCards(
+    List<Product> products,
+    NumberFormat currencyFormat,
+  ) {
+    return products.map((product) {
+      return pw.Container(
+        margin: pw.EdgeInsets.only(bottom: 12),
+        padding: pw.EdgeInsets.all(10),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey300),
+          borderRadius: pw.BorderRadius.circular(4),
+        ),
+        child: pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            // Product Image
+            pw.Container(
+              width: 80,
+              height: 80,
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey200),
+                borderRadius: pw.BorderRadius.circular(4),
+              ),
+              child: _buildProductImage(product),
+            ),
+            pw.SizedBox(width: 12),
+            // Product Details
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    product.name,
+                    style: pw.TextStyle(
+                      fontSize: 12,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    '${product.category} > ${product.subcategory}',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      color: PdfColors.grey,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Material: ${product.material} | Size: ${product.size} | Color: ${product.color}',
+                    style: const pw.TextStyle(fontSize: 9),
+                  ),
+                  pw.SizedBox(height: 6),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'Cost: ₹${currencyFormat.format(product.buyingPrice)}',
+                            style: const pw.TextStyle(fontSize: 9),
+                          ),
+                          pw.Text(
+                            'Sell: ₹${currencyFormat.format(product.sellingPrice)}',
+                            style: const pw.TextStyle(fontSize: 9),
+                          ),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          pw.Text(
+                            'Profit: ₹${currencyFormat.format(product.profit)}',
+                            style: pw.TextStyle(
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                              color: product.profit >= 0 ? PdfColors.green : PdfColors.red,
+                            ),
+                          ),
+                          pw.Text(
+                            'Margin: ${product.profitMargin.toStringAsFixed(1)}%',
+                            style: const pw.TextStyle(fontSize: 9),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  pw.Widget _buildProductImage(Product product) {
+    try {
+      if (product.imagePath != null && product.imagePath!.isNotEmpty) {
+        final imageFile = File(product.imagePath!);
+        if (imageFile.existsSync()) {
+          return pw.Image(
+            pw.MemoryImage(imageFile.readAsBytesSync()),
+            fit: pw.BoxFit.cover,
+          );
+        }
+      }
+    } catch (e) {
+      print('Error loading product image: $e');
+    }
+    
+    // Fallback: placeholder
+    return pw.Container(
+      color: PdfColors.grey100,
+      child: pw.Center(
+        child: pw.Text(
+          'No Image',
+          style: const pw.TextStyle(fontSize: 8),
         ),
       ),
     );
