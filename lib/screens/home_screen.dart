@@ -5,6 +5,7 @@ import '../models/product.dart';
 import '../services/database_service.dart';
 import '../services/pdf_service.dart';
 import 'product_entry_screen.dart';
+import 'pdf_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final DatabaseService databaseService;
@@ -97,6 +98,18 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.picture_as_pdf),
             onPressed: _generatePdf,
             tooltip: 'Export to PDF',
+          ),
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PdfHistoryScreen(),
+                ),
+              );
+            },
+            tooltip: 'PDF History',
           ),
           PopupMenuButton(
             itemBuilder: (context) => [
