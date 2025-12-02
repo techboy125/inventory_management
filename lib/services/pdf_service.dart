@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
 import '../models/product.dart';
 import 'package:intl/intl.dart';
 
@@ -107,13 +108,51 @@ class PdfService {
       ),
     );
 
-    // Save PDF
-    final output = await getApplicationDocumentsDirectory();
-    final file = File(
-      '${output.path}/Inventory_Report_${DateTime.now().millisecondsSinceEpoch}.pdf',
-    );
-    await file.writeAsBytes(await pdf.save());
-    return file.path;
+    // Determine a sensible save location:
+    // Try to save to external storage (Downloads) if available, 
+    // otherwise fall back to application documents
+    Directory outputDir;
+    try {
+      if (Platform.isAndroid) {
+        final externalDir = await getExternalStorageDirectory();
+        if (externalDir != null) {
+          outputDir = externalDir;
+        } else {
+          outputDir = await getApplicationDocumentsDirectory();
+        }
+      } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+        final dl = await getDownloadsDirectory();
+        outputDir = dl ?? await getApplicationDocumentsDirectory();
+      } else {
+        // iOS and other platforms
+        outputDir = await getApplicationDocumentsDirectory();
+      }
+    } catch (e) {
+      print('Error determining save directory: $e');
+      outputDir = await getApplicationDocumentsDirectory();
+    }
+
+    // Create the file
+    final fileName = 'Inventory_Report_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final file = File('${outputDir.path}${Platform.pathSeparator}$fileName');
+    
+    try {
+      await file.writeAsBytes(await pdf.save());
+      print('PDF saved successfully to: ${file.path}');
+
+      // Open the saved PDF in the platform default viewer so the user can
+      // view/share/save it from there without extra storage permissions.
+      try {
+        await OpenFile.open(file.path);
+      } catch (e) {
+        print('Error opening PDF file: $e');
+      }
+
+      return file.path;
+    } catch (e) {
+      print('Error saving PDF: $e');
+      rethrow;
+    }
   }
 
   pw.Widget _buildProductsTable(

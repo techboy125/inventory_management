@@ -9,10 +9,10 @@ class ProductEntryScreen extends StatefulWidget {
   final Product? product;
 
   const ProductEntryScreen({
-    Key? key,
+    super.key,
     required this.databaseService,
     this.product,
-  }) : super(key: key);
+  });
 
   @override
   State<ProductEntryScreen> createState() => _ProductEntryScreenState();

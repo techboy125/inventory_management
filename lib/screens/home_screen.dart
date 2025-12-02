@@ -10,9 +10,9 @@ class HomeScreen extends StatefulWidget {
   final DatabaseService databaseService;
 
   const HomeScreen({
-    Key? key,
+    super.key,
     required this.databaseService,
-  }) : super(key: key);
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
